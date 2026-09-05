@@ -6,7 +6,7 @@ from copy import deepcopy
 
 from textual.app import ComposeResult
 from textual.binding import Binding
-from textual.containers import Horizontal, Vertical
+from textual.containers import Horizontal
 from textual.screen import Screen
 from textual.widgets import Header, Footer
 
@@ -15,9 +15,9 @@ from ..client import send_request
 from ..export import export_exchange
 from ..models import Collection, RequestData, ResponseData, SavedRequest
 from ..share import export_request_json
-from ..widgets.collection_tree import CollectionTree
 from ..widgets.request_editor import RequestEditor
 from ..widgets.response_viewer import ResponseViewer
+from .collections_popup import CollectionsPopup, NEW_COLLECTION
 from .import_request import ImportRequestModal
 from .new_collection import NewCollectionModal
 from .save_request import SaveRequestModal
@@ -30,6 +30,7 @@ class MainScreen(Screen):
         Binding("ctrl+e", "export_response", "Export", priority=True),
         Binding("ctrl+shift+e", "share_request", "Share req", priority=True),
         Binding("ctrl+i", "import_request", "Import", priority=True),
+        Binding("ctrl+p", "open_collections", "Collections", priority=True),
         Binding("ctrl+n", "new_request", "New request", priority=True),
         Binding("ctrl+o", "new_collection", "New collection", priority=True),
         Binding("ctrl+d", "delete_request", "Delete", priority=True),
@@ -48,18 +49,14 @@ class MainScreen(Screen):
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
         with Horizontal(id="workspace"):
-            yield CollectionTree(id="collections")
-            with Vertical(id="panes"):
-                yield RequestEditor(id="editor")
-                yield ResponseViewer(id="response")
+            yield RequestEditor(id="editor")
+            yield ResponseViewer(id="response")
         yield Footer()
 
     def on_mount(self) -> None:
         self.editor = self.query_one("#editor", RequestEditor)
         self.response = self.query_one("#response", ResponseViewer)
-        self.collection_tree = self.query_one("#collections", CollectionTree)
         self.collections = storage.load_enabled(self.data_dir)
-        self.collection_tree.apply_data(self.collections)
         self.editor.load_from(self.current_request)
 
     # --- events ------------------------------------------------------------
@@ -70,15 +67,13 @@ class MainScreen(Screen):
     def on_request_editor_save_requested(self, event: RequestEditor.SaveRequested) -> None:
         self.action_save_request()
 
-    def on_collection_tree_request_selected(
-        self, event: CollectionTree.RequestSelected
-    ) -> None:
+    def _load_request(self, collection_name: str, request_id: str) -> None:
         collection = next(
-            (c for c in self.collections if c.name == event.collection_name), None
+            (c for c in self.collections if c.name == collection_name), None
         )
         if collection is None:
             return
-        saved = collection.requests.get(event.request_id)
+        saved = collection.requests.get(request_id)
         if saved is None:
             return
         self.current_saved = saved
@@ -151,6 +146,20 @@ class MainScreen(Screen):
     def action_import_request(self) -> None:
         self.app.push_screen(ImportRequestModal(), self._on_import_result)
 
+    def action_open_collections(self) -> None:
+        self.app.push_screen(CollectionsPopup(self.collections), self._on_collections_popup)
+
+    def _on_collections_popup(
+        self, result: tuple[str, str] | str | None
+    ) -> None:
+        if result is None:
+            return
+        if result == NEW_COLLECTION:
+            self.action_new_collection()
+            return
+        collection_name, request_id = result
+        self._load_request(collection_name, request_id)
+
     def _on_import_result(self, result: tuple[str, RequestData] | None) -> None:
         if result is None:
             return
@@ -168,7 +177,6 @@ class MainScreen(Screen):
         if self.current_saved is not None and self.current_collection is not None:
             self.current_saved.request = deepcopy(request)
             storage.save_collection(self.current_collection, self.data_dir)
-            self.collection_tree.apply_data(self.collections)
             self.notify(f"Saved '{self.current_saved.name}'")
             return
         name = self._default_request_name(request)
@@ -196,7 +204,6 @@ class MainScreen(Screen):
         storage.save_collection(collection, self.data_dir)
         self.current_saved = saved
         self.current_collection = collection
-        self.collection_tree.apply_data(self.collections)
         self.notify(f"Saved '{saved.name}' into '{collection.name}'")
 
     def action_new_collection(self) -> None:
@@ -208,7 +215,6 @@ class MainScreen(Screen):
         collection = Collection(name=name)
         self.collections.append(collection)
         storage.save_collection(collection, self.data_dir)
-        self.collection_tree.apply_data(self.collections)
         self.notify(f"Created collection '{name}'")
 
     def action_new_request(self) -> None:
@@ -233,7 +239,6 @@ class MainScreen(Screen):
         else:
             storage.save_collection(self.current_collection, self.data_dir)
         self.action_new_request()
-        self.collection_tree.apply_data(self.collections)
         self.notify(f"Deleted '{name}'")
 
     @staticmethod

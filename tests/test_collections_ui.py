@@ -52,9 +52,6 @@ async def test_load_select_edit_and_delete(tmp_path, monkeypatch):
     async with boot_app() as (app, pilot):
         from textual.widgets import Tree as TextualTree
 
-        tree = app.screen.query_one("#collections")
-        assert isinstance(tree, TextualTree)
-
         # Seed a collection with two requests directly into storage.
         from apicli.models import Collection, SavedRequest, RequestData
 
@@ -71,13 +68,17 @@ async def test_load_select_edit_and_delete(tmp_path, monkeypatch):
         )
         storage.save_collection(collection, tmp_path)
 
-        # Reload: create a fresh main screen state via reload of the app.
-        app.screen.collections = storage.load_enabled(tmp_path)
+        # Reload collections into the main screen, then open the popup.
         screen = app.screen
-        screen.editor.load_from(screen.collections[0].requests["r1"].request)
-        screen.current_collection = screen.collections[0]
-        screen.current_saved = screen.collections[0].requests["r1"]
-        screen.collection_tree.apply_data(screen.collections)
+        screen.collections = storage.load_enabled(tmp_path)
+        await pilot.press("ctrl+p")
+        await pilot.pause()
+
+        from apicli.screens.collections_popup import CollectionsPopup
+
+        assert isinstance(app.screen, CollectionsPopup)
+        tree = app.screen.query_one("#collections")
+        assert isinstance(tree, TextualTree)
 
         # Find the request node matching r1 and select it via Tree.select_node.
         col_node = tree.root.children[0]
@@ -85,6 +86,8 @@ async def test_load_select_edit_and_delete(tmp_path, monkeypatch):
         tree.select_node(request_node)
         await pilot.pause()
 
+        # Popup dismissed, back on main screen with r1 loaded.
+        assert not isinstance(app.screen, CollectionsPopup)
         editor = app.screen.query_one("#editor")
         assert editor.url_input.value == "https://demo.example.com/health"
         assert str(editor.method_select.value) == "GET"
@@ -170,7 +173,6 @@ async def test_delete_last_request_removes_collection_file(tmp_path, monkeypatch
         screen.collections = storage.load_enabled(tmp_path)
         screen.current_collection = screen.collections[0]
         screen.current_saved = screen.collections[0].requests["x"]
-        screen.collection_tree.apply_data(screen.collections)
 
         await pilot.press("ctrl+d")
         await pilot.pause()

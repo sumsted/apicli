@@ -104,7 +104,7 @@ def _render(
 
 
 def _body_lines(data: bytes) -> list[str]:
-    text = _pretty_json(_decode(data))
+    text = pretty_json(_decode(data))
     if len(text) > MAX_BODY_CHARS:
         text = text[:MAX_BODY_CHARS]
         return [f"  {line}" for line in text.splitlines()] + [
@@ -113,7 +113,8 @@ def _body_lines(data: bytes) -> list[str]:
     return [f"  {line}" for line in text.splitlines()]
 
 
-def _pretty_json(text: str) -> str:
+def pretty_json(text: str) -> str:
+    """Return ``text`` pretty-printed if it parses as a JSON object/array."""
     import json
 
     stripped = text.lstrip()

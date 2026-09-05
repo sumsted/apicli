@@ -10,6 +10,7 @@ import httpx
 import pytest
 
 from textual.css.query import NoMatches
+from textual.widgets import TextArea
 
 from apicli.app import ApiCliApp
 from apicli.client import send_request
@@ -37,7 +38,7 @@ async def wait_for_widget(app, selector, timeout: float = 5.0):
 async def boot_app(size=(140, 44)):
     app = ApiCliApp()
     async with app.run_test(size=size) as pilot:
-        await wait_on_screen(app, "#collections")
+        await wait_on_screen(app, "#editor")
         yield app, pilot
 
 
@@ -54,10 +55,33 @@ async def wait_on_screen(app, selector, timeout: float = 5.0):
 @pytest.mark.asyncio
 async def test_app_boots_and_composes():
     async with boot_app() as (app, pilot):
-        assert app.screen.query_one("#collections") is not None
         assert app.screen.query_one("#editor") is not None
         assert app.screen.query_one("#response") is not None
         assert app.screen.query_one("#url-input") is not None
+        # Collections are now a popup, not on the main screen.
+        try:
+            app.screen.query_one("#collections")
+        except NoMatches:
+            pass
+        else:
+            raise AssertionError("#collections should not be on the main screen")
+
+        editor = app.screen.query_one("#editor")
+        response = app.screen.query_one("#response")
+        assert editor.size.width == response.size.width
+        assert editor.size.height == response.size.height
+
+        # Open the collections popup.
+        await pilot.press("ctrl+p")
+        await pilot.pause()
+        from apicli.screens.collections_popup import CollectionsPopup
+
+        assert isinstance(app.screen, CollectionsPopup)
+        assert app.screen.query_one("#collections") is not None
+        assert app.screen.query_one("#popup-new-collection") is not None
+        box = app.screen.query_one("#collections-popup")
+        assert box.region.x + box.region.width // 2 < app.screen.size.width * 0.60
+        assert box.region.x > 10 and box.region.y > 0
 
 
 @pytest.mark.asyncio
@@ -84,11 +108,10 @@ async def test_send_updates_response_viewer(monkeypatch):
         await pilot.pause()
         status = app.screen.query_one("#response-status")
         assert "200" in status.render().plain
-        body = app.screen.query_one("#response-body")
-        from rich.pretty import Pretty
-
-        visual = body.render()
-        assert isinstance(visual._renderable, (Pretty, str))
+        body = app.screen.query_one("#response-body", TextArea)
+        assert '"ok": true' in body.text
+        assert "'ok': True" not in body.text
+        assert body.read_only
 
 
 @pytest.mark.asyncio
@@ -115,8 +138,40 @@ async def test_response_body_is_scrollable(monkeypatch):
         await pilot.press("ctrl+r")
         await pilot.pause()
 
-        scroll = app.screen.query_one("#resp-body-scroll")
+        scroll = app.screen.query_one("#response-body", TextArea)
         assert scroll.max_scroll_y > 0
+
+
+@pytest.mark.asyncio
+async def test_response_body_can_be_selected_and_copied(monkeypatch):
+    async def fake_send(request, oauth_provider=None, timeout=60.0):
+        return ResponseData(
+            status_code=200,
+            reason="OK",
+            http_version="HTTP/1.1",
+            headers=[("content-type", "application/json")],
+            body=b'{"a": [1, 2], "b": true}',
+            elapsed_ms=5,
+            size_bytes=24,
+            ok=True,
+            url=request.url,
+            request_method=request.method,
+        )
+
+    monkeypatch.setattr("apicli.screens.main_screen.send_request", fake_send)
+    async with boot_app() as (app, pilot):
+        app.screen.query_one("#editor").url_input.value = "https://example.com/x"
+        await pilot.press("ctrl+r")
+        await pilot.pause()
+
+        body = app.screen.query_one("#response-body", TextArea)
+        assert body.selected_text == ""
+        body.action_select_all()
+        copied = body.selected_text
+        assert copied
+        assert '"a": [' in copied
+        assert '"b": true' in copied
+        assert json.loads(copied) == {"a": [1, 2], "b": True}
 
 
 @pytest.mark.asyncio
@@ -134,7 +189,7 @@ async def test_request_tabs_all_scroll():
     from apicli.widgets.auth_panel import AuthPanel
     from textual.widgets import TabbedContent
 
-    async with boot_app() as (app, pilot):
+    async with boot_app(size=(120, 22)) as (app, pilot):
         editor = app.screen.query_one("#editor")
         tabs = editor.query_one(TabbedContent)
         assert tabs.region.bottom <= editor.region.bottom
@@ -270,7 +325,43 @@ async def test_import_keybinding_loads_shared_request(tmp_path, monkeypatch):
 
         editor = app.screen.query_one("#editor")
         assert editor.url_input.value == "https://shared.example.com/go"
-        assert editor.body_panel._ta.text == '{"x": 1}'
+        assert editor.body_panel._ta.text == '{\n  "x": 1\n}'
+
+
+@pytest.mark.asyncio
+async def test_loaded_json_body_is_pretty_formatted():
+    from apicli.models import RequestData
+
+    async with boot_app() as (app, pilot):
+        request = RequestData(
+            method="POST",
+            url="https://api.example.com/items",
+            body='{"b":1,"a":[1,2]}',
+            body_type="json",
+        )
+        app.screen.editor.load_from(request)
+        text = app.screen.editor.body_panel._ta.text
+        assert '"a": [' in text
+        assert '"b": 1' in text
+        assert text.strip().startswith("{\n")
+
+
+@pytest.mark.asyncio
+async def test_json_body_uses_syntax_highlighting():
+    from apicli.models import RequestData
+    from textual.document._syntax_aware_document import SyntaxAwareDocument
+
+    async with boot_app() as (app, pilot):
+        request = RequestData(
+            method="POST",
+            url="https://api.example.com/items",
+            body='{"a": true}',
+            body_type="json",
+        )
+        app.screen.editor.load_from(request)
+        await pilot.pause()
+        ta = app.screen.editor.body_panel._ta
+        assert isinstance(ta.document, SyntaxAwareDocument)
 
 
 class _JsonTransport:

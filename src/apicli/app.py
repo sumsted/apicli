@@ -19,6 +19,8 @@ class ApiCliApp(App):
     SUB_TITLE = "API testing in the terminal"
     BINDINGS = [Binding("ctrl+q", "quit", "Quit")]
     CSS_PATH = CSS_PATH
+    # Free up ctrl+p for the collections popup.
+    ENABLE_COMMAND_PALETTE: bool = False
 
     def on_mount(self) -> None:
         self.push_screen(MainScreen())

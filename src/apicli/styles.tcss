@@ -6,29 +6,19 @@ Screen {
     height: 1fr;
 }
 
-#collections {
-    width: 30%;
+#editor {
+    width: 50%;
+    height: 1fr;
     border: round $primary;
     margin: 0 0 0 1;
     padding: 0 1;
 }
 
-#panes {
-    width: 70%;
-    height: 1fr;
-}
-
-#editor {
-    height: 45%;
-    border: round $primary;
-    margin: 0 1;
-    padding: 0 1;
-}
-
 #response {
-    height: 55%;
+    width: 50%;
+    height: 1fr;
     border: round $accent;
-    margin: 0 1 1 1;
+    margin: 0 1;
     padding: 0 1;
 }
 
@@ -100,6 +90,17 @@ ContentSwitcher {
     height: 1fr;
 }
 
+#tab-resp-body {
+    height: 1fr;
+}
+
+#response-body {
+    width: 1fr;
+    height: 1fr;
+    border: none;
+    padding: 0 1;
+}
+
 #response-status {
     height: auto;
     margin: 1 0;
@@ -130,6 +131,10 @@ ContentSwitcher {
 #oauth-status.-error { color: red; }
 #oauth-status.-muted { color: $text-muted; }
 
+ModalScreen {
+    align: center middle;
+}
+
 #modal {
     width: 60;
     height: auto;
@@ -137,6 +142,27 @@ ContentSwitcher {
     background: $surface;
     padding: 1 2;
     align: center middle;
+}
+
+.collections-modal {
+    width: 45%;
+    height: 85%;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 1;
+    align: center middle;
+}
+
+.collections-modal #collections {
+    width: 1fr;
+    height: 1fr;
+    background: $surface;
+}
+
+.collections-modal #popup-actions {
+    height: auto;
+    margin-top: 1;
+    align-horizontal: right;
 }
 
 .modal-title {

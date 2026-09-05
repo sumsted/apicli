@@ -6,6 +6,7 @@ from textual.app import ComposeResult
 from textual.containers import Horizontal, Vertical
 from textual.widgets import Label, Select, TextArea
 
+from ..export import pretty_json
 from ..models import BODY_TYPES, RequestData
 
 _LANGUAGES = {"json": "json", "xml": "xml"}
@@ -32,7 +33,10 @@ class BodyPanel(Vertical):
         body_type = request.body_type if request.body_type in BODY_TYPES else "text"
         self._type.value = body_type
         self._set_language(body_type)
-        self._ta.load_text(request.body)
+        body = request.body
+        if body_type == "json":
+            body = pretty_json(body)
+        self._ta.load_text(body)
 
     def apply_to(self, request: RequestData) -> None:
         request.body_type = self.selected_type

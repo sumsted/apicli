@@ -1,0 +1,155 @@
+Screen {
+    layout: horizontal;
+}
+
+#workspace {
+    height: 1fr;
+}
+
+#collections {
+    width: 30%;
+    border: round $primary;
+    margin: 0 0 0 1;
+    padding: 0 1;
+}
+
+#panes {
+    width: 70%;
+    height: 1fr;
+}
+
+#editor {
+    height: 45%;
+    border: round $primary;
+    margin: 0 1;
+    padding: 0 1;
+}
+
+#response {
+    height: 55%;
+    border: round $accent;
+    margin: 0 1 1 1;
+    padding: 0 1;
+}
+
+#urlbar {
+    height: auto;
+    padding: 0 0 1 0;
+}
+
+#urlbar #method {
+    width: 14;
+}
+
+#urlbar #url-input {
+    width: 1fr;
+}
+
+#urlbar #auth-badge {
+    width: auto;
+    margin: 0 1;
+    color: $text-muted;
+}
+
+#urlbar #send-button {
+    width: 12;
+}
+
+#urlbar #save-button {
+    width: 12;
+}
+
+.code-area {
+    height: 1fr;
+}
+
+.resp-scroll {
+    height: 1fr;
+    scrollbar-gutter: stable;
+}
+
+.resp-content {
+    width: 1fr;
+    overflow-x: auto;
+    overflow-y: auto;
+}
+
+#req-tabs {
+    height: 1fr;
+}
+
+ContentSwitcher {
+    height: 1fr;
+}
+
+#tab-headers, #tab-body, #tab-auth {
+    height: 1fr;
+}
+
+#headers-panel, #body-panel {
+    height: 1fr;
+}
+
+#auth-panel {
+    height: 1fr;
+    overflow-y: auto;
+    scrollbar-gutter: stable;
+}
+
+#response-tabs {
+    height: 1fr;
+}
+
+#response-status {
+    height: auto;
+    margin: 1 0;
+}
+
+#body-controls {
+    height: auto;
+    margin: 0 0 1 0;
+}
+
+#body-controls #body-type {
+    width: 22;
+}
+
+.auth-fields {
+    margin: 0 0 1 0;
+}
+
+#basic-fields, #oauth2-fields, #oauth-actions {
+    height: auto;
+}
+
+#oauth2-fields Input, #basic-fields Input {
+    margin-bottom: 1;
+}
+
+#oauth-status.-ok { color: green; }
+#oauth-status.-error { color: red; }
+#oauth-status.-muted { color: $text-muted; }
+
+#modal {
+    width: 60;
+    height: auto;
+    border: thick $primary;
+    background: $surface;
+    padding: 1 2;
+    align: center middle;
+}
+
+.modal-title {
+    text-style: bold;
+    text-align: center;
+    margin-bottom: 1;
+}
+
+#modal Horizontal {
+    height: auto;
+    margin-top: 1;
+}
+
+#modal Button {
+    min-width: 10;
+}

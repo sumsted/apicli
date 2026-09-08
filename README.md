@@ -49,8 +49,15 @@ In the request/response editors, `ctrl+a` selects all and `ctrl+c` copies.
 
 ## Data & storage
 
-- Collections (request JSON) live in `./data/` by default; override the location
-  with `$APICLI_DATA_DIR`.
+The data location is resolved in order of priority:
+
+1. `$APICLI_DATA_DIR` if set (absolute or `~` paths honored);
+2. `./data` when you launch `apicli` inside a project directory (a folder
+   containing `pyproject.toml` or `.git`);
+3. `~/apicli/data` as the default for a globally installed `apicli` run from
+   anywhere else.
+
+- Collections (request JSON) live in the resolved data directory.
 - Exported exchange reports are written to `{data_dir}/exports/` as
   `{slug}-{YYYYMMDD-HHMMSS}.txt`, and shared requests as `.json` files.
 - Response bodies are pretty-printed JSON, matching the request editor.

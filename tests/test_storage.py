@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+import os
+from pathlib import Path
 
 from apicli.models import (
     AuthConfig,
@@ -66,3 +68,34 @@ def test_load_enabled_ignores_settings_and_garbage(tmp_path):
 def test_slug_collision_uses_dash_fallback():
     assert storage._slugify("Hello World") == "hello-world"
     assert storage._slugify("!!!") == "collection"
+
+
+def test_data_dir_env_wins(monkeypatch, tmp_path):
+    monkeypatch.setenv("APICLI_DATA_DIR", str(tmp_path / "custom"))
+    expected = tmp_path / "custom"
+    assert storage.data_dir() == expected
+    assert storage.data_dir().is_absolute()
+
+
+def test_data_dir_project_dir_uses_local_data(monkeypatch, tmp_path):
+    (tmp_path / "pyproject.toml").write_text("")
+    monkeypatch.delenv("APICLI_DATA_DIR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    assert storage.data_dir() == Path("data")
+
+
+def test_data_dir_git_dir_uses_local_data(monkeypatch, tmp_path):
+    (tmp_path / ".git").mkdir()
+    monkeypatch.delenv("APICLI_DATA_DIR", raising=False)
+    monkeypatch.chdir(tmp_path)
+    assert storage.data_dir() == Path("data")
+
+
+def test_data_dir_home_fallback(monkeypatch, tmp_path):
+    fake_home = tmp_path / "home"
+    fake_home.mkdir()
+    monkeypatch.delenv("APICLI_DATA_DIR", raising=False)
+    monkeypatch.setenv("HOME", str(fake_home))
+    monkeypatch.chdir(tmp_path)
+    assert storage.data_dir() == fake_home / "apicli" / "data"
+    assert storage.data_dir().is_absolute()

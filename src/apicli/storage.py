@@ -14,14 +14,29 @@ DATA_DIR_ENV = "APICLI_DATA_DIR"
 
 
 def data_dir() -> Path:
-    """The directory for collection JSON files (override with $APICLI_DATA_DIR)."""
+    """Resolve where collection JSON files live.
+
+    Priority (highest first):
+      1. ``$APICLI_DATA_DIR`` (``~`` is expanded).
+      2. ``./data`` when the current working directory looks like a project
+         (contains ``pyproject.toml`` or ``.git``) -- keeps repo behaviour.
+      3. ``~/apicli/data`` for global use from anywhere.
+    """
     override = os.environ.get(DATA_DIR_ENV)
-    return Path(override).expanduser() if override else DEFAULT_DATA_DIR
+    if override:
+        return Path(override).expanduser()
+    if _is_project_dir(Path.cwd()):
+        return DEFAULT_DATA_DIR
+    return Path.home() / "apicli" / "data"
 
 
-def load_enabled(data_dir: str | Path = DEFAULT_DATA_DIR) -> list[Collection]:
+def _is_project_dir(path: Path) -> bool:
+    return (path / "pyproject.toml").exists() or (path / ".git").exists()
+
+
+def load_enabled(data_dir: str | Path | None = None) -> list[Collection]:
     """Load all collection JSON files from a directory, sorted by name."""
-    path = Path(data_dir)
+    path = data_dir if data_dir is not None else data_dir()
     if not path.is_dir():
         return []
     collections: list[Collection] = []
@@ -44,9 +59,11 @@ def load_collection(path: str | Path) -> Collection:
     return Collection.from_dict(data)
 
 
-def save_collection(collection: Collection, data_dir: str | Path = DEFAULT_DATA_DIR) -> Path:
+def save_collection(
+    collection: Collection, data_dir: str | Path | None = None
+) -> Path:
     """Save a collection as {slug}.json inside data_dir. Returns the path written."""
-    path = Path(data_dir)
+    path = Path(data_dir) if data_dir is not None else data_dir()
     path.mkdir(parents=True, exist_ok=True)
     slug = _slugify(collection.name)
     dest = path / f"{slug}.json"
@@ -54,8 +71,9 @@ def save_collection(collection: Collection, data_dir: str | Path = DEFAULT_DATA_
     return dest
 
 
-def delete_collection(name: str, data_dir: str | Path = DEFAULT_DATA_DIR) -> Path | None:
-    path = Path(data_dir) / f"{_slugify(name)}.json"
+def delete_collection(name: str, data_dir: str | Path | None = None) -> Path | None:
+    path_dir = Path(data_dir) if data_dir is not None else data_dir()
+    path = path_dir / f"{_slugify(name)}.json"
     if path.exists():
         path.unlink()
         return path
@@ -63,7 +81,7 @@ def delete_collection(name: str, data_dir: str | Path = DEFAULT_DATA_DIR) -> Pat
 
 
 def save_request(
-    request: SavedRequest, collection: Collection, data_dir: str | Path = DEFAULT_DATA_DIR
+    request: SavedRequest, collection: Collection, data_dir: str | Path | None = None
 ) -> Path:
     return save_collection(collection, data_dir)
 

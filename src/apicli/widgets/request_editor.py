@@ -37,10 +37,10 @@ class RequestEditor(Vertical):
             yield Button("Save", id="save-button", variant="default")
             yield Button("Send", id="send-button", variant="primary")
         with TabbedContent(id="req-tabs") as tabs:
-            with TabPane("Headers", id="tab-headers"):
-                yield HeadersPanel(id="headers-panel")
             with TabPane("Body", id="tab-body"):
                 yield BodyPanel(id="body-panel")
+            with TabPane("Headers", id="tab-headers"):
+                yield HeadersPanel(id="headers-panel")
             with TabPane("Auth", id="tab-auth"):
                 yield AuthPanel(id="auth-panel")
 

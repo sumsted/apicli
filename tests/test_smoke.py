@@ -71,6 +71,12 @@ async def test_app_boots_and_composes():
         assert editor.size.width == response.size.width
         assert editor.size.height == response.size.height
 
+        from textual.widgets import TabbedContent
+
+        req_tabs = editor.query_one(TabbedContent)
+        assert req_tabs.active_pane is not None
+        assert req_tabs.active_pane.id == "tab-body"
+
         # Open the collections popup.
         await pilot.press("ctrl+p")
         await pilot.pause()

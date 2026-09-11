@@ -91,6 +91,46 @@ async def test_app_boots_and_composes():
 
 
 @pytest.mark.asyncio
+async def test_save_send_buttons_sit_on_tab_row():
+    from textual.widgets import Button, TabbedContent
+
+    async with boot_app() as (app, pilot):
+        editor = app.screen.query_one("#editor")
+        area = editor.query_one("#req-area")
+        tabs = editor.query_one(TabbedContent)
+        save = app.screen.query_one("#save-button", Button)
+        send = app.screen.query_one("#send-button", Button)
+
+        assert tabs.region == area.region
+        assert save.region.y == tabs.region.y
+        assert send.region.y == tabs.region.y
+        assert save.region.height == 1
+        assert save.region.height == send.region.height
+        assert save.region.right <= area.region.right
+        assert save.region.x > area.region.x
+        assert save.region.x < tabs.region.right
+        assert "Save" in save.render().plain
+        assert "Send" in send.render().plain
+
+
+@pytest.mark.asyncio
+async def test_focus_order_is_url_then_save_send_then_tabs():
+    from textual.widgets import Input
+
+    async with boot_app() as (app, pilot):
+        url = app.screen.query_one("#url-input", Input)
+        url.focus()
+        await pilot.pause()
+        assert app.focused is url
+        await pilot.press("tab")
+        assert app.focused.id == "save-button"
+        await pilot.press("tab")
+        assert app.focused.id == "send-button"
+        await pilot.press("tab")
+        assert app.focused is app.screen.query_one("#req-tabs").tabs
+
+
+@pytest.mark.asyncio
 async def test_send_updates_response_viewer(monkeypatch):
     async def fake_send(request, oauth_provider=None, timeout=60.0):
         return ResponseData(
@@ -220,6 +260,30 @@ async def test_request_tabs_all_scroll():
         auth.scroll_end()
         await pilot.pause()
         assert auth.max_scroll_y > 0
+
+
+@pytest.mark.asyncio
+async def test_tls_verify_toggle_round_trips():
+    from apicli.models import RequestData
+    from textual.widgets import Checkbox
+
+    async with boot_app() as (app, pilot):
+        editor = app.screen.query_one("#editor")
+        checkbox = app.screen.query_one("#tls-skip", Checkbox)
+
+        request = RequestData(method="GET", url="https://example.com/x")
+        editor.load_from(request)
+        editor.apply_to(request)
+        assert request.verify_tls is True
+        assert checkbox.value is False
+
+        checkbox.value = True
+        await pilot.pause()
+        editor.apply_to(request)
+        assert request.verify_tls is False
+
+        editor.load_from(request)
+        assert checkbox.value is True
 
 
 @pytest.mark.asyncio

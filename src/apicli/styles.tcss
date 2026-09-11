@@ -41,12 +41,39 @@ Screen {
     color: $text-muted;
 }
 
-#urlbar #send-button {
-    width: 12;
+#req-area {
+    height: 1fr;
+    layers: tabs actions;
 }
 
-#urlbar #save-button {
-    width: 12;
+#req-tabs {
+    layer: tabs;
+    width: 1fr;
+    height: 1fr;
+}
+
+#req-buttons {
+    layer: actions;
+    height: 2;
+    width: auto;
+    dock: right;
+    margin-left: 1;
+}
+
+#req-buttons Button {
+    width: auto;
+    height: 1;
+    min-height: 1;
+    border: none;
+    background: transparent;
+    padding: 0;
+    margin: 0 1 0 0;
+    text-style: none;
+    color: $text;
+}
+
+#req-buttons #send-button {
+    color: $accent;
 }
 
 .code-area {
@@ -62,10 +89,6 @@ Screen {
     width: 1fr;
     overflow-x: auto;
     overflow-y: auto;
-}
-
-#req-tabs {
-    height: 1fr;
 }
 
 ContentSwitcher {

@@ -34,15 +34,17 @@ class RequestEditor(Vertical):
             yield Select([(m, m) for m in HTTP_METHODS], value="GET", id="method")
             yield Input(placeholder="https://api.example.com/path", id="url-input")
             yield Static("No Auth", id="auth-badge")
-            yield Button("Save", id="save-button", variant="default")
-            yield Button("Send", id="send-button", variant="primary")
-        with TabbedContent(id="req-tabs") as tabs:
-            with TabPane("Body", id="tab-body"):
-                yield BodyPanel(id="body-panel")
-            with TabPane("Headers", id="tab-headers"):
-                yield HeadersPanel(id="headers-panel")
-            with TabPane("Auth", id="tab-auth"):
-                yield AuthPanel(id="auth-panel")
+        with Vertical(id="req-area"):
+            with Horizontal(id="req-buttons"):
+                yield Button("Save", id="save-button", variant="default")
+                yield Button("Send", id="send-button", variant="primary")
+            with TabbedContent(id="req-tabs") as tabs:
+                with TabPane("Body", id="tab-body"):
+                    yield BodyPanel(id="body-panel")
+                with TabPane("Headers", id="tab-headers"):
+                    yield HeadersPanel(id="headers-panel")
+                with TabPane("Auth", id="tab-auth"):
+                    yield AuthPanel(id="auth-panel")
 
     def on_mount(self) -> None:
         self.method_select = self.query_one("#method", Select)
@@ -61,6 +63,7 @@ class RequestEditor(Vertical):
         self.headers_panel.set_headers(request.headers)
         self.body_panel.load_from(request)
         self.auth_panel.load_from(request.auth)
+        self.auth_panel.set_tls_verify(request.verify_tls)
         self._update_badge()
 
     def apply_to(self, request: RequestData) -> None:
@@ -69,6 +72,7 @@ class RequestEditor(Vertical):
         request.headers = self.headers_panel.get_headers()
         self.body_panel.apply_to(request)
         self.auth_panel.apply_to(request.auth)
+        request.verify_tls = self.auth_panel.verify_tls
         self._update_badge()
 
     def clear_token(self) -> None:

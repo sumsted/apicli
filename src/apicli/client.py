@@ -25,6 +25,30 @@ BODY_CONTENT_TYPES = {
 DEFAULT_TIMEOUT = 60.0
 
 
+def _client_kwargs(
+    request: RequestData,
+    timeout: float = DEFAULT_TIMEOUT,
+    transport: httpx.AsyncBaseTransport | None = None,
+) -> dict:
+    """Build httpx.AsyncClient kwargs from a RequestData (testable in isolation)."""
+    kwargs: dict = {"timeout": timeout, "follow_redirects": True}
+    if not request.verify_tls:
+        kwargs["verify"] = False
+    if transport is not None:
+        kwargs["transport"] = transport
+    return kwargs
+
+
+def _cert_error_hint(exc: Exception) -> str:
+    cause = exc.__cause__ if exc.__cause__ else exc
+    if isinstance(cause, Exception) and "certificate verify failed" in str(cause).lower():
+        return (
+            " (TLS certificate verification failed -- tick the "
+            "'Skip TLS certificate verification' option in the Auth tab)"
+        )
+    return ""
+
+
 async def send_request(
     request: RequestData,
     oauth_provider: OAuth2Provider | None = None,
@@ -61,9 +85,7 @@ async def send_request(
     content = _build_content(request, headers)
 
     try:
-        client_kwargs = {"timeout": timeout, "follow_redirects": True}
-        if transport is not None:
-            client_kwargs["transport"] = transport
+        client_kwargs = _client_kwargs(request, timeout, transport)
         async with httpx.AsyncClient(**client_kwargs) as client:
             await _apply_auth(client, request, headers, oauth_provider, result)
             mark("auth configured")
@@ -101,7 +123,7 @@ async def send_request(
         mark("failed: timeout")
         return result
     except httpx.TransportError as exc:
-        result.error = f"Connection error: {exc}"
+        result.error = f"Connection error: {exc}{_cert_error_hint(exc)}"
         mark("failed: connection error")
         return result
     except AuthError as exc:

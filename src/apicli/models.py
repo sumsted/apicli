@@ -58,6 +58,7 @@ class RequestData:
     body_type: str = "json"
     body: str = ""
     auth: AuthConfig = field(default_factory=AuthConfig)
+    verify_tls: bool = True
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -66,6 +67,7 @@ class RequestData:
             "headers": [[k, v] for k, v in self.headers],
             "body_type": self.body_type,
             "body": self.body,
+            "verify_tls": self.verify_tls,
             "auth": {
                 "type": self.auth.type,
                 "basic": {
@@ -96,6 +98,7 @@ class RequestData:
             headers=[[str(k), str(v)] for k, v in data.get("headers", [])],
             body_type=data.get("body_type", "json"),
             body=data.get("body", ""),
+            verify_tls=bool(data.get("verify_tls", True)),
             auth=AuthConfig(
                 type=auth.get("type", "none"),
                 basic=BasicAuthConfig(

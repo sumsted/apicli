@@ -24,6 +24,7 @@ def test_model_round_trip():
         headers=[["X-Token", "abc"], ["Content-Type", "application/json"]],
         body_type="json",
         body='{"a": 1}',
+        verify_tls=False,
         auth=AuthConfig(
             type="oauth2",
             oauth2=OAuth2ClientCredentialsConfig(
@@ -39,6 +40,7 @@ def test_model_round_trip():
     assert restored.headers == [["X-Token", "abc"], ["Content-Type", "application/json"]]
     assert restored.auth.oauth2.client_id == "cid"
     assert restored.auth.oauth2.scope == "scope-a"
+    assert restored.verify_tls is False
 
 
 def test_collection_round_trip(tmp_path):

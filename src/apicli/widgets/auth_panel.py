@@ -9,6 +9,7 @@ from textual.message import Message
 from textual.widgets import Button, Checkbox, Input, Label, Select, Static
 
 from ..auth import AuthError, OAuth2Provider
+from ..client import _cert_error_hint
 from ..models import AUTH_TYPES, AuthConfig, OAuth2ClientCredentialsConfig
 
 AUTH_LABELS = {
@@ -43,6 +44,11 @@ class AuthPanel(VerticalScroll):
             value="none",
             id="auth-type",
         )
+        yield Checkbox(
+            "Skip TLS certificate verification",
+            value=False,
+            id="tls-skip",
+        )
 
         with Vertical(id="basic-fields", classes="auth-fields"):
             yield Label("Username")
@@ -73,6 +79,7 @@ class AuthPanel(VerticalScroll):
 
     def on_mount(self) -> None:
         self._type = self.query_one("#auth-type", Select)
+        self._skip_tls = self.query_one("#tls-skip", Checkbox)
         self._basic = self.query_one("#basic-fields")
         self._oauth2 = self.query_one("#oauth2-fields")
         self._basic_username = self.query_one("#basic-username", Input)
@@ -96,6 +103,13 @@ class AuthPanel(VerticalScroll):
     @property
     def provider(self) -> OAuth2Provider | None:
         return self._provider
+
+    @property
+    def verify_tls(self) -> bool:
+        return not bool(self._skip_tls.value)
+
+    def set_tls_verify(self, enabled: bool) -> None:
+        self._skip_tls.value = not enabled
 
     def load_from(self, auth: AuthConfig) -> None:
         self._type.value = auth.type
@@ -142,16 +156,20 @@ class AuthPanel(VerticalScroll):
             self._set_status("Fill in token URL, client ID and secret", error=True)
             return
         self._set_status("Fetching token…", muted=True)
+        client_kwargs = {"timeout": 30.0}
+        if not self.verify_tls:
+            client_kwargs["verify"] = False
         try:
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            async with httpx.AsyncClient(**client_kwargs) as client:
                 await provider.get_token(client)
         except AuthError as exc:
             self._set_status(f"Failed: {exc}", error=True)
             self.post_message(self.TokenObtained(False, str(exc)))
             return
         except httpx.TransportError as exc:
-            self._set_status(f"Failed: {exc}", error=True)
-            self.post_message(self.TokenObtained(False, str(exc)))
+            detail = f"{exc}{_cert_error_hint(exc)}"
+            self._set_status(f"Failed: {detail}", error=True)
+            self.post_message(self.TokenObtained(False, detail))
             return
         self._set_status("Token ready", ok=True)
         self.post_message(self.TokenObtained(True, ""))

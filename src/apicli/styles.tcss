@@ -76,6 +76,17 @@ Screen {
     color: $accent;
 }
 
+#req-buttons Button:focus {
+    background: $foreground;
+    color: $background;
+    text-style: none;
+}
+
+#req-buttons #send-button:focus {
+    background: $accent;
+    color: $background;
+}
+
 .code-area {
     height: 1fr;
 }

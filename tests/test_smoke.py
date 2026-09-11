@@ -114,7 +114,7 @@ async def test_save_send_buttons_sit_on_tab_row():
 
 
 @pytest.mark.asyncio
-async def test_focus_order_is_url_then_save_send_then_tabs():
+async def test_focus_order_is_url_then_send_then_save_then_tabs():
     from textual.widgets import Input
 
     async with boot_app() as (app, pilot):
@@ -123,11 +123,11 @@ async def test_focus_order_is_url_then_save_send_then_tabs():
         await pilot.pause()
         assert app.focused is url
         await pilot.press("tab")
-        assert app.focused.id == "save-button"
-        await pilot.press("tab")
         assert app.focused.id == "send-button"
         await pilot.press("tab")
-        assert app.focused is app.screen.query_one("#req-tabs").tabs
+        assert app.focused.id == "save-button"
+        await pilot.press("tab")
+        assert app.focused is app.screen.query_one("#req-tabs ContentTabs")
 
 
 @pytest.mark.asyncio

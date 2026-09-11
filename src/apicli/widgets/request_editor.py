@@ -20,6 +20,26 @@ from .body_panel import BodyPanel
 from .headers_panel import HeadersPanel
 
 
+class ActionBar(Horizontal):
+    """Holds the Save/Send actions so they sort before the request tabs."""
+
+    @property
+    def _focus_sort_key(self) -> tuple[int, int]:
+        return (0, -1)
+
+
+class ActionButton(Button):
+    """A Save/Send button with an explicit Tab-focus priority."""
+
+    def __init__(self, *args, focus_priority: int = 0, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._focus_priority = focus_priority
+
+    @property
+    def _focus_sort_key(self) -> tuple[int, int]:
+        return (0, self._focus_priority)
+
+
 class RequestEditor(Vertical):
     """The request building pane."""
 
@@ -35,9 +55,9 @@ class RequestEditor(Vertical):
             yield Input(placeholder="https://api.example.com/path", id="url-input")
             yield Static("No Auth", id="auth-badge")
         with Vertical(id="req-area"):
-            with Horizontal(id="req-buttons"):
-                yield Button("Save", id="save-button", variant="default")
-                yield Button("Send", id="send-button", variant="primary")
+            with ActionBar(id="req-buttons"):
+                yield ActionButton("Save", id="save-button", variant="default", focus_priority=0)
+                yield ActionButton("Send", id="send-button", variant="primary", focus_priority=-1)
             with TabbedContent(id="req-tabs") as tabs:
                 with TabPane("Body", id="tab-body"):
                     yield BodyPanel(id="body-panel")

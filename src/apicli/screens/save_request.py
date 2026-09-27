@@ -20,10 +20,16 @@ class SaveRequestResult:
 class SaveRequestModal(ModalScreen[SaveRequestResult]):
     """Collect a request name and target collection; dismisses with the result."""
 
-    def __init__(self, request_name: str, collections: list[str]) -> None:
+    def __init__(
+        self,
+        request_name: str,
+        collections: list[str],
+        default_collection: str | None = None,
+    ) -> None:
         super().__init__()
         self._request_name = request_name
         self._collections = collections
+        self._default_collection = default_collection
 
     def compose(self) -> ComposeResult:
         with Vertical(id="modal"):
@@ -51,6 +57,11 @@ class SaveRequestModal(ModalScreen[SaveRequestResult]):
         self._collection = self.query_one("#save-collection", Select) if self._collections else None
         self._new_name = self.query_one("#save-new-collection", Input)
         self._new_label = self.query_one("#new-coll-label")
+        if (
+            self._collection is not None
+            and self._default_collection in self._collections
+        ):
+            self._collection.value = self._default_collection
         blank = self._collection is None or (
             self._collection.value is None or self._collection.value is Select.NULL
         )

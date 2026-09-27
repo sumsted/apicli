@@ -12,6 +12,7 @@ Two-pane layout: compose and send requests on the left, read responses on the ri
 - **Response viewer** with status/elapsed/size, colorized body, headers, and timing tabs
 - Select and copy response bodies (`ctrl+a` / `ctrl+c`)
 - **Collections** managed in a `ctrl+p` popup with JSON storage on disk
+- **Clone** a loaded request into a new one via the save dialog (`ctrl+shift+s`)
 - **Export** the full exchange (request, response, timeline) as a readable report
 - **Share / Import** requests as JSON for portability between machines
 
@@ -37,6 +38,7 @@ apicli
 |----------------|--------------------|
 | `ctrl+r`       | Send request       |
 | `ctrl+s`       | Save request       |
+| `ctrl+shift+s` | Clone request      |
 | `ctrl+p`       | Open collections   |
 | `ctrl+n`       | New request        |
 | `ctrl+o`       | New collection     |

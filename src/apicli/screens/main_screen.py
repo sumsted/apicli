@@ -27,6 +27,7 @@ class MainScreen(Screen):
     BINDINGS = [
         Binding("ctrl+r", "send", "Send", priority=True),
         Binding("ctrl+s", "save_request", "Save", priority=True),
+        Binding("ctrl+shift+s", "clone_request", "Clone", priority=True),
         Binding("ctrl+e", "export_response", "Export", priority=True),
         Binding("ctrl+shift+e", "share_request", "Share req", priority=True),
         Binding("ctrl+i", "import_request", "Import", priority=True),
@@ -183,9 +184,33 @@ class MainScreen(Screen):
         choices = [c.name for c in self.collections]
         self.app.push_screen(SaveRequestModal(name, choices), self._on_save_result)
 
+    def action_clone_request(self) -> None:
+        self._sync_editor()
+        name = (
+            f"{self.current_saved.name} copy"
+            if self.current_saved is not None
+            else self._default_request_name(self.current_request)
+        )
+        choices = [c.name for c in self.collections]
+        default_collection = (
+            self.current_collection.name if self.current_collection is not None else None
+        )
+        self.app.push_screen(
+            SaveRequestModal(name, choices, default_collection=default_collection),
+            self._on_clone_result,
+        )
+
     def _on_save_result(self, result: SaveRequestResult | None) -> None:
         if result is None:
             return
+        self._persist_new_request(result, "Saved")
+
+    def _on_clone_result(self, result: SaveRequestResult | None) -> None:
+        if result is None:
+            return
+        self._persist_new_request(result, "Cloned")
+
+    def _persist_new_request(self, result: SaveRequestResult, verb: str) -> None:
         request = self._sync_editor()
         saved = SavedRequest(name=result.name, request=deepcopy(request))
 
@@ -204,7 +229,7 @@ class MainScreen(Screen):
         storage.save_collection(collection, self.data_dir)
         self.current_saved = saved
         self.current_collection = collection
-        self.notify(f"Saved '{saved.name}' into '{collection.name}'")
+        self.notify(f"{verb} '{saved.name}' into '{collection.name}'")
 
     def action_new_collection(self) -> None:
         self.app.push_screen(NewCollectionModal(), self._on_new_collection)

@@ -179,3 +179,86 @@ async def test_delete_last_request_removes_collection_file(tmp_path, monkeypatch
 
         assert len(list(tmp_path.glob("*.json"))) == 0
         assert screen.collections == []
+
+
+@pytest.mark.asyncio
+async def test_clone_loaded_request_creates_independent_copy(tmp_path, monkeypatch):
+    from textual.widgets import Select
+
+    from apicli.models import Collection, RequestData, SavedRequest
+    from apicli.screens.save_request import SaveRequestModal
+
+    monkeypatch.setenv("APICLI_DATA_DIR", str(tmp_path))
+    collection = Collection(name="Demo API")
+    collection.requests["r1"] = SavedRequest(
+        id="r1",
+        name="get health",
+        request=RequestData(method="GET", url="https://demo.example.com/health"),
+    )
+    storage.save_collection(collection, tmp_path)
+
+    async with boot_app() as (app, pilot):
+        screen = app.screen
+        screen.collections = storage.load_enabled(tmp_path)
+        screen._load_request("Demo API", "r1")
+
+        editor = app.screen.query_one("#editor")
+        editor.url_input.value = "https://demo.example.com/healthz"
+
+        await pilot.press("ctrl+shift+s")
+        await pilot.pause()
+
+        assert isinstance(app.screen, SaveRequestModal)
+        name_input = app.screen.query_one("#save-name", Input)
+        assert name_input.value == "get health copy"
+        collection_select = app.screen.query_one("#save-collection", Select)
+        assert collection_select.value == "Demo API"
+
+        name_input.value = "get health clone"
+        app.screen.query_one("#save-confirm", Button).press()
+        await pilot.pause()
+
+        reloaded = storage.load_collection(tmp_path / "demo-api.json")
+        assert len(reloaded.requests) == 2
+        assert reloaded.requests["r1"].request.url == "https://demo.example.com/health"
+        clone = next(r for r in reloaded.requests.values() if r.id != "r1")
+        assert clone.name == "get health clone"
+        assert clone.request.url == "https://demo.example.com/healthz"
+        assert screen.current_saved.id == clone.id
+        assert screen.current_collection.name == "Demo API"
+
+        # Editing and saving now updates the clone, never the original.
+        editor.url_input.value = "https://demo.example.com/healthz2"
+        await pilot.press("ctrl+s")
+        await pilot.pause()
+
+        reloaded = storage.load_collection(tmp_path / "demo-api.json")
+        assert reloaded.requests["r1"].request.url == "https://demo.example.com/health"
+        assert reloaded.requests[clone.id].request.url == "https://demo.example.com/healthz2"
+
+
+@pytest.mark.asyncio
+async def test_clone_unsaved_request_behaves_like_first_save(tmp_path, monkeypatch):
+    from apicli.screens.save_request import SaveRequestModal
+
+    monkeypatch.setenv("APICLI_DATA_DIR", str(tmp_path))
+    async with boot_app() as (app, pilot):
+        editor = app.screen.query_one("#editor")
+        editor.url_input.value = "https://api.example.com/new"
+
+        await pilot.press("ctrl+shift+s")
+        await pilot.pause()
+
+        assert isinstance(app.screen, SaveRequestModal)
+        app.screen.query_one("#save-new-collection", Input).value = "Cloned API"
+        app.screen.query_one("#save-name", Input).value = "first clone"
+        app.screen.query_one("#save-confirm", Button).press()
+        await pilot.pause()
+
+        files = list(tmp_path.glob("*.json"))
+        assert len(files) == 1
+        saved_collection = storage.load_collection(files[0])
+        saved = next(iter(saved_collection.requests.values()))
+        assert saved.name == "first clone"
+        assert saved.request.url == "https://api.example.com/new"
+        assert app.screen.current_saved is not None

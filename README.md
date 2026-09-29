@@ -15,6 +15,7 @@ Two-pane layout: compose and send requests on the left, read responses on the ri
 - **Clone** a loaded request into a new one via the save dialog (`ctrl+shift+s`)
 - **Export** the full exchange (request, response, timeline) as a readable report
 - **Share / Import** requests as JSON for portability between machines
+- **Optional cyberpunk theme** via `APICLI_THEME=cyberpunk` or toggle with `ctrl+t`
 
 ## Install
 
@@ -46,8 +47,15 @@ apicli
 | `ctrl+e`       | Export exchange    |
 | `ctrl+shift+e` | Share request      |
 | `ctrl+i`       | Import request     |
+| `ctrl+t`       | Toggle cyberpunk theme |
 
 In the request/response editors, `ctrl+a` selects all and `ctrl+c` copies.
+
+### Themes
+
+Two schemes ship with apicli: the default `textual-dark` and a neon
+**cyberpunk** theme. Start in cyberpunk with `APICLI_THEME=cyberpunk apicli`, or
+press `ctrl+t` at runtime to toggle between the two.
 
 ## Data & storage
 

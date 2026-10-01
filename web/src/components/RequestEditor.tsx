@@ -19,6 +19,8 @@ type Tab = 'body' | 'headers' | 'auth'
 
 const inputClass =
   'w-full rounded border border-edge bg-panel px-2 py-1 text-sm text-white outline-none focus:border-neon'
+const selectClass =
+  'rounded border border-edge bg-panel px-2 py-1 text-sm text-white outline-none focus:border-neon'
 const labelClass = 'mb-1 block text-xs uppercase tracking-wide text-dim'
 
 const BODY_LANGUAGE: Record<BodyType, EditorLanguage> = {
@@ -75,7 +77,7 @@ export function RequestEditor({ value, onChange }: RequestEditorProps) {
     <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
       <div className="flex gap-2">
         <select
-          className={inputClass + ' w-28'}
+          className={selectClass + ' w-28'}
           value={value.method}
           onChange={(e) =>
             patch({ method: e.target.value as RequestData['method'] })
@@ -106,7 +108,7 @@ export function RequestEditor({ value, onChange }: RequestEditorProps) {
           <div className="flex items-center gap-2">
             <label className={labelClass + ' mb-0'}>Type</label>
             <select
-              className={inputClass + ' w-28'}
+              className={selectClass + ' w-28'}
               value={value.body_type}
               onChange={(e) => patch({ body_type: e.target.value as BodyType })}
             >
@@ -171,7 +173,7 @@ export function RequestEditor({ value, onChange }: RequestEditorProps) {
           <div>
             <label className={labelClass}>Auth type</label>
             <select
-              className={inputClass + ' w-48'}
+              className={selectClass + ' w-48'}
               value={value.auth.type}
               onChange={(e) => setAuthType(e.target.value as AuthType)}
             >

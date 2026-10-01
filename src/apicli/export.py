@@ -29,8 +29,20 @@ def export_exchange(
         timestamp = datetime.datetime.now()
     filename = f"{slugify(name)}-{timestamp:%Y%m%d-%H%M%S}.txt"
     dest = dest_dir / filename
-    dest.write_text(_render(request, response, name, timestamp), encoding="utf-8")
+    dest.write_text(render_exchange(request, response, name, timestamp), encoding="utf-8")
     return dest
+
+
+def render_exchange(
+    request: RequestData,
+    response: ResponseData,
+    name: str,
+    timestamp: datetime.datetime | None = None,
+) -> str:
+    """Render the readable request/response report without writing it to disk."""
+    if timestamp is None:
+        timestamp = datetime.datetime.now()
+    return _render(request, response, name, timestamp)
 
 
 def _render(

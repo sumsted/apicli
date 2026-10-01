@@ -29,28 +29,45 @@ def export_request_json(
         timestamp = datetime.datetime.now()
     filename = f"{slugify(name)}-{timestamp:%Y%m%d-%H%M%S}.json"
     dest = dest_dir / filename
-    payload = {
+    dest.write_text(
+        json.dumps(request_payload(request, name, timestamp), indent=2, ensure_ascii=False)
+        + "\n",
+        encoding="utf-8",
+    )
+    return dest
+
+
+def request_payload(
+    request: RequestData,
+    name: str,
+    timestamp: datetime.datetime | None = None,
+) -> dict:
+    """Build the portable request JSON payload (without touching the disk)."""
+    if timestamp is None:
+        timestamp = datetime.datetime.now()
+    return {
         "format": FORMAT,
         "version": FORMAT_VERSION,
         "exported_at": timestamp.isoformat(timespec="seconds"),
         "name": name,
         "request": request.to_dict(),
     }
-    dest.write_text(
-        json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
-    )
-    return dest
+
+
+def parse_request_json(raw: object, fallback_name: str = "") -> tuple[str, RequestData]:
+    """Parse a shared request file (wrapper or bare request) into ``(name, request)``."""
+    if not isinstance(raw, dict):
+        raise ValueError("Not a valid apicli request file.")
+    if isinstance(raw.get("request"), dict):
+        name = str(raw.get("name", "")).strip() or fallback_name
+        return name, RequestData.from_dict(raw["request"])
+    if "method" in raw or "url" in raw:
+        return fallback_name, RequestData.from_dict(raw)
+    raise ValueError("Not a valid apicli request file.")
 
 
 def load_request_json(path: str | Path) -> tuple[str, RequestData]:
     """Read a shared request JSON file, accepting either the apicli wrapper
     format or a bare ``RequestData`` dict. Returns ``(name, request)``."""
     raw = json.loads(Path(path).read_text(encoding="utf-8"))
-    if not isinstance(raw, dict):
-        raise ValueError("Not a valid apicli request file.")
-    if isinstance(raw.get("request"), dict):
-        name = str(raw.get("name", "")).strip() or Path(path).stem
-        return name, RequestData.from_dict(raw["request"])
-    if "method" in raw or "url" in raw:
-        return Path(path).stem, RequestData.from_dict(raw)
-    raise ValueError("Not a valid apicli request file.")
+    return parse_request_json(raw, Path(path).stem)

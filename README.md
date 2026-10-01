@@ -80,6 +80,64 @@ python -m pytest -q
 
 The test suite drives the TUI headlessly with Textual's test runner.
 
+## Web interface (in progress)
+
+A local FastAPI backend exposes the same core (collections, requests, send) for
+a browser and future desktop (pywebview) UI. The SPA mirrors the TUI: send,
+collections CRUD, save/clone, import/export/share, and Basic/OAuth2 auth with
+the TLS toggle.
+
+```sh
+# Terminal 1 — backend
+pip install -e '.[web]'
+apicli-web              # http://127.0.0.1:8000
+
+# Terminal 2 — SPA with hot reload (proxies /api to the backend)
+cd web
+npm install
+npm run dev             # http://127.0.0.1:5173
+```
+
+For a production bundle, `npm run build` writes `web/dist`, which `apicli-web`
+serves at `/` alongside the API. Interactive API docs are at `/docs`. The
+server imports only the UI-agnostic core (`models`, `storage`, `client`,
+`auth`, `export`, `share`) — no Textual — so it stays small enough to bundle
+into a desktop app later.
+
+### Desktop app (pywebview)
+
+The same SPA runs as a native desktop window. The shell starts the FastAPI
+server on a random loopback port with a per-session bearer token, then opens a
+pywebview window pointed at it (the token is passed in the URL fragment, so it
+never hits the server or disk).
+
+```sh
+pip install -e '.[desktop]'
+npm --prefix web run build      # produce web/dist first
+apicli-desktop
+```
+
+On macOS this uses WKWebView (via pyobjc), on Windows WebView2, and on Linux
+WebKitGTK. Export/share/import use native save/open dialogs through the
+pywebview bridge; in a plain browser they fall back to regular downloads and
+the file picker.
+
+### Packaging the desktop app
+
+PyInstaller bundles the Python core, the FastAPI server, pywebview, and the
+prebuilt SPA into one app; Textual and the tree-sitter stack are excluded.
+
+```sh
+packaging/build_macos.sh            # dist/apicli.app (+ dist/apicli.dmg if hdiutil)
+powershell packaging/build_windows.ps1   # dist/apicli/apicli.exe
+packaging/build_linux.sh            # dist/apicli/apicli (needs WebKitGTK)
+```
+
+The spec lives at `packaging/apicli.spec`; it fails fast if `web/dist` is
+missing, so run `npm --prefix web run build` first (the scripts do this for
+you). Regenerate the macOS icon with `packaging/make_icons_macos.sh`. Bundles
+are unsigned — on first macOS launch, right-click the app and choose **Open**.
+
 ## License
 
 Apache License 2.0. See [LICENSE](LICENSE).

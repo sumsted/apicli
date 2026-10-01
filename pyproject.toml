@@ -14,9 +14,13 @@ dependencies = [
 
 [project.optional-dependencies]
 test = ["pytest>=8"]
+web = ["fastapi>=0.115", "uvicorn>=0.30"]
+desktop = ["pywebview>=5.0", "fastapi>=0.115", "uvicorn>=0.30"]
 
 [project.scripts]
 apicli = "apicli.app:main"
+apicli-web = "apicli.server.__main__:main"
+apicli-desktop = "apicli.desktop:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

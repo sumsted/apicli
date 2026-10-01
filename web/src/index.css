@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+@theme {
+  --color-ink: #0b0f1a;
+  --color-panel: #12172a;
+  --color-panel-2: #1a2140;
+  --color-edge: #24304f;
+  --color-neon: #00e5ff;
+  --color-magenta: #ff2e97;
+  --color-mint: #05ffa1;
+  --color-warn: #f9f002;
+  --color-danger: #ff3864;
+  --color-dim: #7f8db0;
+  --font-mono: "SFMono-Regular", ui-monospace, "JetBrains Mono", Menlo, monospace;
+}
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-ink);
+  color: #d7f9ff;
+  font-family: var(--font-mono);
+}
+
+/* CodeMirror should fill its container and blend with the panel background. */
+.cm-editor {
+  height: 100%;
+  background: transparent;
+}
+.cm-editor.cm-focused {
+  outline: none;
+}
+.cm-gutters {
+  background: transparent;
+  border: none;
+}

@@ -265,7 +265,7 @@ export default function App() {
         <span className="mr-2 font-bold text-neon">apicli</span>
         <button
           type="button"
-          onClick={() => openSaveDialog('save')}
+          onClick={handleSave}
           className={actionClass + ' text-white'}
         >
           Save
